@@ -2,6 +2,24 @@ library(xlsx)
 library(readxl)
 library(dplyr)
 library(tidyr)
+library(readr)
+
+################################################################################
+### IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT    ###
+###       This script converts temp in F to C. If data is in C already,      ###
+###            comment out lines 113-116 and uncomment 119-122               ###
+################################################################################
+### IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT    ###
+################################################################################
+
+
+#################################################################################
+###   For creating 4R file from sheets found in the 2009 socoast dataset      ###
+###   Audit info is pulled from master audit file                             ###
+###   Data is contained in hobo csv files                                     ###
+#################################################################################
+
+
 
 #Parent Directory
 parentpath <- "//deqlab1/Vol_Data/socoast/2009/2009 S Coast Submit/"
@@ -41,6 +59,18 @@ pp_cnames <- c("TIME",
                "EXPECTED_RESULT",
                "LOGGER_RESULT",
                "DIFF")
+
+data_cnames <- c("index",
+                 "DATETIME",
+                 "TEMP_r",
+                 "X4",
+                 "X5",
+                 "X7",
+                 "X6",
+                 "X8")
+
+# data_ctypes <- c(date",
+#                  "guess")
 
 wb = createWorkbook()
 
@@ -87,6 +117,24 @@ sheet = createSheet(wb, "SiteMasterInfo")
 addDataFrame(smi, sheet = sheet, startRow = 6)
 
 excel_sheets(paste0(parentpath,Audit_Master))
+
+
+#function to convert F to C
+#if file is in C, comment out and uncomment next section
+
+
+temp_converter <- function(temp_F) {
+  temp_c <- ((temp_F - 32) * (5 / 9)) 
+  return(temp_c)
+}
+
+
+# temp_converter <- function(temp_F) {
+#   temp_c <- temp_F 
+#   return(temp_c)
+# }
+
+
 
 #Get audit info
 for(i in 2:length(audit_tabs)) {
@@ -135,8 +183,8 @@ for(i in 2:length(audit_tabs)) {
     ) %>%
     mutate(TIME = strftime(TIME, format="%H:%M:%S", tz = "GMT")) %>%
     mutate(DATE = as.Date(DATE))%>%
-    mutate(AUDIT_RESULT = (AUDIT_RESULT-32) * (5/9),
-           LOGGER_RESULT = (LOGGER_RESULT-32) * (5/9))
+    mutate(AUDIT_RESULT = temp_converter(AUDIT_RESULT),
+           LOGGER_RESULT = temp_converter(LOGGER_RESULT))
            
   
   #write to list for later binding
@@ -215,8 +263,8 @@ for(i in 2:length(audit_tabs)) {
   
   #convert F to C
   cor_ppdata <- ppdata %>%
-    mutate(EXPECTED_RESULT = ((EXPECTED_RESULT-32) * (5/9)),
-           LOGGER_RESULT = ((LOGGER_RESULT-32) * (5/9)))
+    mutate(EXPECTED_RESULT = temp_converter(EXPECTED_RESULT),
+           LOGGER_RESULT = temp_converter(LOGGER_RESULT))
   
   pp_audit_list[[i-1]] <- cor_ppdata
   
@@ -232,3 +280,57 @@ addDataFrame(field_auditinfo, sheet = sheet)
 
 sheet = createSheet(wb, "PrePostResults")
 addDataFrame(pp_audit_data, sheet = sheet)
+
+###################################################################################
+###                                  Read data                                  ###
+###################################################################################
+
+#vector of filenames in directory
+in_fnames <- list.files(datapath, full.names = TRUE)
+
+#choose only csv
+datafiles <- in_fnames[grepl('csv', in_fnames)]
+
+#get logger ID from filename and create vector
+loggers <- sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(datafiles))
+ 
+
+
+
+for(i in 1:length(datafiles)) {
+  
+  datafile <- datafiles [i]
+  
+  loggerdata <- read_csv(datafile, 
+           skip = 2,
+           col_names = data_cnames)
+  
+
+  loggerdata <- read_csv(datafile, 
+                         skip = 2,
+                         col_names = data_cnames,
+                         col_types = list(
+                           index = col_skip(),
+                           DATETIME = col_character(),
+                           TEMP_r = col_double(),
+                           X4 = col_skip(),
+                           X5 = col_skip(),
+                           X7 = col_skip(),
+                           X6 = col_skip(),
+                           X8 = col_skip()
+                         ))
+  
+  
+  
+  tmp_data <- loggerdata %>%
+    select(DATETIME, TEMP_r) %>%
+    mutate(DATE = as.Date(DATETIME, "%m/%d/%y %I:%M:%S %p")) %>%
+    mutate(TIME = format(as.POSIXct(strptime(tmp_data$DATETIME,"%m/%d/%y %I:%M:%S %p")) ,format = "%H:%M"))
+  
+  
+  
+  
+}
+
+
+
