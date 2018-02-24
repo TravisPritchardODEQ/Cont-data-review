@@ -119,6 +119,7 @@ addDataFrame(smi, sheet = sheet, startRow = 6)
 excel_sheets(paste0(parentpath,Audit_Master))
 
 
+
 #function to convert F to C
 #if file is in C, comment out and uncomment next section
 
@@ -301,36 +302,33 @@ for(i in 1:length(datafiles)) {
   
   datafile <- datafiles [i]
   
-  loggerdata <- read_csv(datafile, 
-           skip = 2,
-           col_names = data_cnames)
   
-
   loggerdata <- read_csv(datafile, 
                          skip = 2,
-                         col_names = data_cnames,
-                         col_types = list(
-                           index = col_skip(),
-                           DATETIME = col_character(),
-                           TEMP_r = col_double(),
-                           X4 = col_skip(),
-                           X5 = col_skip(),
-                           X7 = col_skip(),
-                           X6 = col_skip(),
-                           X8 = col_skip()
-                         ))
+                         col_names = FALSE)
+
   
-  
-  
-  tmp_data <- loggerdata %>%
-    select(DATETIME, TEMP_r) %>%
+  temp_data <- loggerdata %>%
+    select(X2, X3) %>%
+    rename(DATETIME = X2, TEMP_r = X3) %>%
     mutate(DATE = as.Date(DATETIME, "%m/%d/%y %I:%M:%S %p")) %>%
-    mutate(TIME = format(as.POSIXct(strptime(tmp_data$DATETIME,"%m/%d/%y %I:%M:%S %p")) ,format = "%H:%M"))
+    mutate(TIME = format(as.POSIXct(strptime(DATETIME,"%m/%d/%y %I:%M:%S %p")) ,format = "%H:%M")) %>%
+    mutate(TEMP_r = temp_converter(TEMP_r)) %>%
+    select(DATE, TIME, TEMP_r) %>%
+    mutate(TEMP_DQL = "")
+  
+    
   
   
+  sheet = createSheet(wb, loggers[i])
+  addDataFrame(temp_data, sheet = sheet, startRow = 5)
   
   
-}
+  }
+
+saveWorkbook(wb, paste0(parentpath,excelname))
 
 
-
+##To Do
+#write LASAR ID to Field Audit Result table   
+      #lookup from SMI table
