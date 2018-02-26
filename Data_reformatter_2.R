@@ -36,20 +36,24 @@ temp_converter <- function(temp_F) {
 parentpath <- "//deqlab1/Vol_Data/socoast/2009/2009 S Coast Submit/"
 
 #Directory to find data files
-datapath <- "//deqlab1/Vol_Data/socoast/2009/2009 S Coast Submit/txt files/"
+datapath <- "//deqlab1/Vol_Data/socoast/2009/2009 S Coast Submit/DEQ clipped/"
 
 #Audit master File
 Audit_Master <- "workingcopy2009 Audit Master_hobo.xls"
+stow_audit_master <- "WorkingCopy2009 Audit Master_stowaway.xls"
 
 #filename to write to
 excelname <- "4R2009SoCoastSubmit.xlsx"
 
 #read tab info from Audit Master File
 audit_tabs <- excel_sheets(paste0(parentpath,Audit_Master))
+stow_audit_tabs <- excel_sheets(paste0(parentpath,stow_audit_master))
 
 #Create empty list to use for later binding
 field_audit_list = list()
 pp_audit_list = list()
+stow_field_audit_list = list()
+Stow_pp_audit_list = list()
 
 #formatting excel import 
 field_ctypes <- c("date",
@@ -311,30 +315,30 @@ addDataFrame(pp_audit_data, sheet = sheet)
 in_fnames <- list.files(datapath, full.names = TRUE)
 
 #choose only csv
-datafiles <- in_fnames[grepl('csv', in_fnames)]
+datafiles <- in_fnames[grepl('xls', in_fnames)]
 
 #get logger ID from filename and create vector
-loggers <- sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(datafiles))
+loggers <- sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(in_fnames))
  
 
 
 
 for(i in 1:length(datafiles)) {
   
-  datafile <- datafiles [i]
+  datafile <- datafiles[i]
   
-  print(paste0("starting File ", i, " of ", length(datafiles)))
+  print(paste0("starting ",loggers[i],  "- File ", i, " of ", length(datafiles)))
   
-  loggerdata <- read_csv(datafile, 
-                         skip = 2,
-                         col_names = FALSE)
+  loggerdata <- read_excel(datafile,
+                           range = cell_cols("A:B"),
+                           skip = 2,
+                           col_names = TRUE)%>%
+    rename("DATETIME" = "Date/Time", TEMP_r = "Temperature   (*F)")
 
   
   temp_data <- loggerdata %>%
-    select(X2, X3) %>%
-    rename(DATETIME = X2, TEMP_r = X3) %>%
-    mutate(DATE = as.Date(DATETIME, "%m/%d/%y %I:%M:%S %p")) %>%
-    mutate(TIME = format(as.POSIXct(strptime(DATETIME,"%m/%d/%y %I:%M:%S %p")) ,format = "%H:%M")) %>%
+    mutate(DATE = as.Date(DATETIME, "%m/%d/%y %H:%M:%S")) %>%
+    mutate(TIME = format(as.POSIXct(strptime(DATETIME, "%m/%d/%y %H:%M:%S")) ,format = "%H:%M")) %>%
     mutate(TEMP_r = temp_converter(TEMP_r)) %>%
     select(DATE, TIME, TEMP_r) %>%
     mutate(TEMP_DQL = "")
