@@ -296,10 +296,165 @@ for(i in 2:length(audit_tabs)) {
   
 }
 
+#Get audit info from stowaway sheet
+
+for(i in 2:length(stow_audit_tabs)) {
+  tab_name <- stow_audit_tabs[i]
+  
+  #read Portion of file that has field audit results
+  field_audit <- read_excel(paste0(parentpath, stow_audit_master),
+                            sheet = tab_name,
+                            range = "A25:H37",
+                            col_types = field_ctypes)
+  
+  #reformat field audits to match template
+  field_audit <- field_audit %>%
+    filter(!is.na(Date)) %>%
+    rename(
+      AUDIT_EQUIPMENT_ID = X__1,
+      DATE = Date,
+      TIME = Time,
+      AUDIT_RESULT = Audit,
+      LOGGER_RESULT = Logger
+    ) %>%
+    mutate(
+      LOGGER_ID = tab_name,
+      LASAR_ID = "",
+      PARAMETER = "TEMP",
+      UNITS = "deg c",
+      AuditType = "in situ",
+      DIFF = "",
+      DQL = "",
+      COMMENTS = ""
+    ) %>%
+    select(
+      LOGGER_ID,
+      PARAMETER,
+      UNITS,
+      AuditType,
+      DATE,
+      TIME,
+      AUDIT_RESULT,
+      LOGGER_RESULT,
+      AUDIT_EQUIPMENT_ID,
+      DIFF,
+      DQL,
+      COMMENTS
+    ) %>%
+    mutate(TIME = strftime(TIME, format="%H:%M:%S", tz = "GMT")) %>%
+    mutate(DATE = as.Date(DATE))%>%
+    mutate(AUDIT_RESULT = temp_converter(AUDIT_RESULT),
+           LOGGER_RESULT = temp_converter(LOGGER_RESULT)) %>%
+    left_join(smi_lookup, by = "LOGGER_ID") %>%
+    select(
+      LOGGER_ID,
+      LASAR_ID,
+      PARAMETER,
+      UNITS,
+      AuditType,
+      DATE,
+      TIME,
+      AUDIT_RESULT,
+      LOGGER_RESULT,
+      AUDIT_EQUIPMENT_ID,
+      DIFF,
+      DQL,
+      COMMENTS
+    )
+  
+  
+  
+  
+  #write to list for later binding
+  stow_field_audit_list[[i-1]] <- field_audit
+  
+  #Pre/post audits
+  pre_refID_tbl <-  read_excel(paste0(parentpath, stow_audit_master),
+                               sheet = tab_name,
+                               range = "c13:k13",
+                               col_types = c("text",
+                                             "skip",
+                                             "date",
+                                             "skip",
+                                             "skip",
+                                             "skip",
+                                             "text",
+                                             "skip",
+                                             "date"),
+                               col_names = c("preLOGGER_ID",
+                                             "predate",
+                                             "postLOGGER_ID",
+                                             "postdate"))
+  
+  
+  pre_refID <- pre_refID_tbl[[1,2]]
+  
+  pre_data <- read_excel(paste0(parentpath, stow_audit_master),
+                         sheet = tab_name,
+                         range = "A17:D22",
+                         col_types = pp_ctypes,
+                         col_names = pp_cnames) %>%
+    mutate(TIME = strftime(TIME, format="%H:%M:%S", tz = "GMT")) %>%
+    mutate(REFERENCE_ID = pre_refID_tbl[[1,1]], 
+           PARAMETER = "TEMP",
+           UNITS = "deg C",
+           DATE_TIME = as.POSIXct(paste(pre_refID_tbl[[1,2]], TIME), format="%Y-%m-%d %H:%M:%S"),
+           DQL = "",
+           COMMENTS = "",
+           LOGGER_ID = tab_name) %>%
+    select(LOGGER_ID,
+           PARAMETER,
+           UNITS,
+           DATE_TIME,
+           EXPECTED_RESULT,
+           LOGGER_RESULT,
+           REFERENCE_ID,
+           DIFF,
+           DQL,
+           COMMENTS)
+  
+  post_data <- read_excel(paste0(parentpath, stow_audit_master),
+                          sheet = tab_name,
+                          range = "g17:j22",
+                          col_types = pp_ctypes,
+                          col_names = pp_cnames) %>%
+    mutate(TIME = strftime(TIME, format="%H:%M:%S", tz = "GMT")) %>%
+    mutate(REFERENCE_ID = pre_refID_tbl[[1,3]], 
+           PARAMETER = "TEMP",
+           UNITS = "deg C",
+           DATE_TIME = as.POSIXct(paste(pre_refID_tbl[[1,4]], TIME), format="%Y-%m-%d %H:%M:%S"),
+           DQL = "",
+           COMMENTS = "",
+           LOGGER_ID = tab_name) %>%
+    select(LOGGER_ID,
+           PARAMETER,
+           UNITS,
+           DATE_TIME,
+           EXPECTED_RESULT,
+           LOGGER_RESULT,
+           REFERENCE_ID,
+           DIFF,
+           DQL,
+           COMMENTS)
+  
+  ppdata <- bind_rows(pre_data, post_data)
+  
+  #convert F to C
+  cor_ppdata <- ppdata %>%
+    mutate(EXPECTED_RESULT = temp_converter(EXPECTED_RESULT),
+           LOGGER_RESULT = temp_converter(LOGGER_RESULT))
+  
+  Stow_pp_audit_list[[i-1]] <- cor_ppdata
+  
+  
+}
+
 #bind field audit data together
 field_auditinfo <- bind_rows(field_audit_list)
+field_auditinfo <- bind_rows(stow_field_audit_list)
 #bind pre/post data together
 pp_audit_data <- bind_rows(pp_audit_list)
+pp_audit_data <- bind_rows(Stow_pp_audit_list)
 
 sheet = createSheet(wb, "FieldAuditResults")
 addDataFrame(field_auditinfo, sheet = sheet)
