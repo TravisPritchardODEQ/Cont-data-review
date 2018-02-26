@@ -7,7 +7,7 @@ library(readr)
 ################################################################################
 ### IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT    ###
 ###       This script converts temp in F to C. If data is in C already,      ###
-###            comment out lines 113-116 and uncomment 119-122               ###
+###            comment out lines 24-27 and uncomment lines 30-33             ###
 ################################################################################
 ### IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT    ###
 ################################################################################
@@ -19,8 +19,19 @@ library(readr)
 ###   Data is contained in hobo csv files                                     ###
 #################################################################################
 
+#function to convert F to C
+#if file is in C, comment out and uncomment next section
+temp_converter <- function(temp_F) {
+  temp_c <- ((temp_F - 32) * (5 / 9)) 
+  return(temp_c)
+}
 
-
+#This function does nothing. Use it if data is in C already
+# temp_converter <- function(temp_F) {
+#   temp_c <- temp_F 
+#   return(temp_c)
+# }
+########################################################################################
 #Parent Directory
 parentpath <- "//deqlab1/Vol_Data/socoast/2009/2009 S Coast Submit/"
 
@@ -31,7 +42,7 @@ datapath <- "//deqlab1/Vol_Data/socoast/2009/2009 S Coast Submit/txt files/"
 Audit_Master <- "workingcopy2009 Audit Master_hobo.xls"
 
 #filename to write to
-excelname <- "combineddata.xlsx"
+excelname <- "4R2009SoCoastSubmit.xlsx"
 
 #read tab info from Audit Master File
 audit_tabs <- excel_sheets(paste0(parentpath,Audit_Master))
@@ -41,7 +52,6 @@ field_audit_list = list()
 pp_audit_list = list()
 
 #formatting excel import 
-
 field_ctypes <- c("date",
                   "date",
                   "guess",
@@ -69,9 +79,8 @@ data_cnames <- c("index",
                  "X6",
                  "X8")
 
-# data_ctypes <- c(date",
-#                  "guess")
 
+#Create excel workbook to write data to
 wb = createWorkbook()
 
 #Create Site master table
@@ -112,28 +121,22 @@ smi <- Audit_Smi %>%
          Time_Diff,
          COMMENTS)
 
+
+
 #add to excel sheet
 sheet = createSheet(wb, "SiteMasterInfo")
 addDataFrame(smi, sheet = sheet, startRow = 6)
 
 excel_sheets(paste0(parentpath,Audit_Master))
 
+#Create table to use as lookup for adding LASAR_IDs to field audit table
+smi_lookup <- smi %>%
+  select(Logger_ID, LASAR_ID) %>%
+  rename(LOGGER_ID = Logger_ID)
 
 
-#function to convert F to C
-#if file is in C, comment out and uncomment next section
 
 
-temp_converter <- function(temp_F) {
-  temp_c <- ((temp_F - 32) * (5 / 9)) 
-  return(temp_c)
-}
-
-
-# temp_converter <- function(temp_F) {
-#   temp_c <- temp_F 
-#   return(temp_c)
-# }
 
 
 
@@ -169,7 +172,6 @@ for(i in 2:length(audit_tabs)) {
     ) %>%
     select(
       LOGGER_ID,
-      LASAR_ID,
       PARAMETER,
       UNITS,
       AuditType,
@@ -185,7 +187,25 @@ for(i in 2:length(audit_tabs)) {
     mutate(TIME = strftime(TIME, format="%H:%M:%S", tz = "GMT")) %>%
     mutate(DATE = as.Date(DATE))%>%
     mutate(AUDIT_RESULT = temp_converter(AUDIT_RESULT),
-           LOGGER_RESULT = temp_converter(LOGGER_RESULT))
+           LOGGER_RESULT = temp_converter(LOGGER_RESULT)) %>%
+    left_join(smi_lookup, by = "LOGGER_ID") %>%
+    select(
+      LOGGER_ID,
+      LASAR_ID,
+      PARAMETER,
+      UNITS,
+      AuditType,
+      DATE,
+      TIME,
+      AUDIT_RESULT,
+      LOGGER_RESULT,
+      AUDIT_EQUIPMENT_ID,
+      DIFF,
+      DQL,
+      COMMENTS
+    )
+  
+  
            
   
   #write to list for later binding
@@ -274,6 +294,7 @@ for(i in 2:length(audit_tabs)) {
 
 #bind field audit data together
 field_auditinfo <- bind_rows(field_audit_list)
+#bind pre/post data together
 pp_audit_data <- bind_rows(pp_audit_list)
 
 sheet = createSheet(wb, "FieldAuditResults")
@@ -329,6 +350,4 @@ for(i in 1:length(datafiles)) {
 saveWorkbook(wb, paste0(parentpath,excelname))
 
 
-##To Do
-#write LASAR ID to Field Audit Result table   
-      #lookup from SMI table
+
