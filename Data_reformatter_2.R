@@ -22,7 +22,7 @@ library(readr)
 #function to convert F to C
 #if file is in C, comment out and uncomment next section
 temp_converter <- function(temp_F) {
-  temp_c <- ((temp_F - 32) * (5 / 9)) 
+  temp_c <- (temp_F - 32) * (5 / 9) 
   return(temp_c)
 }
 
@@ -323,6 +323,7 @@ for(i in 1:length(datafiles)) {
   
   datafile <- datafiles [i]
   
+  print(paste0("starting File ", i, " of ", length(datafiles)))
   
   loggerdata <- read_csv(datafile, 
                          skip = 2,
@@ -344,6 +345,7 @@ for(i in 1:length(datafiles)) {
   sheet = createSheet(wb, loggers[i])
   addDataFrame(temp_data, sheet = sheet, startRow = 5)
   
+  print(paste0("Finished File ", i, " of ", length(datafiles)))
   
   }
 
