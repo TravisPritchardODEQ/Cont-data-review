@@ -36,7 +36,8 @@ temp_converter <- function(temp_F) {
 parentpath <- "//deqlab1/Vol_Data/socoast/2009/2009 S Coast Submit/"
 
 #Directory to find data files
-datapath <- "//deqlab1/Vol_Data/socoast/2009/2009 S Coast Submit/DEQ clipped/"
+datapath <- "//deqlab1/Vol_Data/socoast/2009/2009 S Coast Submit/txt files/"
+
 
 #Audit master File
 Audit_Master <- "workingcopy2009 Audit Master_hobo.xls"
@@ -233,10 +234,29 @@ for(i in 2:length(audit_tabs)) {
                                           "postLOGGER_ID",
                                           "postdate"))
   
+  post_refID_tbl <- read_excel(paste0(parentpath, Audit_Master),
+                               sheet = tab_name,
+                               range = "c42:k42",
+                               col_types = c("text",
+                                             "skip",
+                                             "date",
+                                             "skip",
+                                             "skip",
+                                             "skip",
+                                             "text",
+                                             "skip",
+                                             "date"),
+                               col_names = c("preLOGGER_ID",
+                                             "predate",
+                                             "postLOGGER_ID",
+                                             "postdate"))
+  
   
   pre_refID <- pre_refID_tbl[[1,2]]
+  post_refID <- post_refID_tbl[[1,2]]
   
-  pre_data <- read_excel(paste0(parentpath, Audit_Master),
+  
+  pre_data_a <- read_excel(paste0(parentpath, Audit_Master),
                         sheet = tab_name,
                         range = "A17:D22",
                         col_types = pp_ctypes,
@@ -260,7 +280,7 @@ for(i in 2:length(audit_tabs)) {
            DQL,
            COMMENTS)
   
-  post_data <- read_excel(paste0(parentpath, Audit_Master),
+  pre_data_b <- read_excel(paste0(parentpath, Audit_Master),
                          sheet = tab_name,
                          range = "g17:j22",
                          col_types = pp_ctypes,
@@ -284,7 +304,60 @@ for(i in 2:length(audit_tabs)) {
            DQL,
            COMMENTS)
   
-  ppdata <- bind_rows(pre_data, post_data)
+  post_data_a <- read_excel(paste0(parentpath, Audit_Master),
+                           sheet = tab_name,
+                           range = "A46:D51",
+                           col_types = pp_ctypes,
+                           col_names = pp_cnames) %>%
+    mutate(TIME = strftime(TIME, format="%H:%M:%S", tz = "GMT")) %>%
+    mutate(REFERENCE_ID = pre_refID_tbl[[1,1]], 
+           PARAMETER = "TEMP",
+           UNITS = "deg C",
+           DATE_TIME = as.POSIXct(paste(post_refID_tbl[[1,2]], TIME), format="%Y-%m-%d %H:%M:%S"),
+           DQL = "",
+           COMMENTS = "",
+           LOGGER_ID = tab_name) %>%
+    select(LOGGER_ID,
+           PARAMETER,
+           UNITS,
+           DATE_TIME,
+           EXPECTED_RESULT,
+           LOGGER_RESULT,
+           REFERENCE_ID,
+           DIFF,
+           DQL,
+           COMMENTS)
+  
+  post_data_b <- read_excel(paste0(parentpath, Audit_Master),
+                            sheet = tab_name,
+                            range = "G46:J51",
+                            col_types = pp_ctypes,
+                            col_names = pp_cnames) %>%
+    mutate(TIME = strftime(TIME, format="%H:%M:%S", tz = "GMT")) %>%
+    mutate(REFERENCE_ID = pre_refID_tbl[[1,1]], 
+           PARAMETER = "TEMP",
+           UNITS = "deg C",
+           DATE_TIME = as.POSIXct(paste(post_refID_tbl[[1,2]], TIME), format="%Y-%m-%d %H:%M:%S"),
+           DQL = "",
+           COMMENTS = "",
+           LOGGER_ID = tab_name) %>%
+    select(LOGGER_ID,
+           PARAMETER,
+           UNITS,
+           DATE_TIME,
+           EXPECTED_RESULT,
+           LOGGER_RESULT,
+           REFERENCE_ID,
+           DIFF,
+           DQL,
+           COMMENTS)
+  
+  
+  ppdata <- pre_data_a %>%
+    bind_rows(pre_data_b) %>%
+    bind_rows(post_data_a) %>%
+    bind_rows(post_data_b)
+
   
   #convert F to C
   cor_ppdata <- ppdata %>%
@@ -296,8 +369,8 @@ for(i in 2:length(audit_tabs)) {
   
 }
 
-#Get audit info from stowaway sheet
 
+#Get other audit info
 for(i in 2:length(stow_audit_tabs)) {
   tab_name <- stow_audit_tabs[i]
   
@@ -362,7 +435,7 @@ for(i in 2:length(stow_audit_tabs)) {
       COMMENTS
     )
   
-  
+
   
   
   #write to list for later binding
@@ -385,11 +458,27 @@ for(i in 2:length(stow_audit_tabs)) {
                                              "predate",
                                              "postLOGGER_ID",
                                              "postdate"))
+  post_refID_tbl <- read_excel(paste0(parentpath, Audit_Master),
+                               sheet = tab_name,
+                               range = "c42:k42",
+                               col_types = c("text",
+                                             "skip",
+                                             "date",
+                                             "skip",
+                                             "skip",
+                                             "skip",
+                                             "text",
+                                             "skip",
+                                             "date"),
+                               col_names = c("preLOGGER_ID",
+                                             "predate",
+                                             "postLOGGER_ID",
+                                             "postdate"))
   
   
   pre_refID <- pre_refID_tbl[[1,2]]
   
-  pre_data <- read_excel(paste0(parentpath, stow_audit_master),
+  pre_data_a <- read_excel(paste0(parentpath, stow_audit_master),
                          sheet = tab_name,
                          range = "A17:D22",
                          col_types = pp_ctypes,
@@ -413,7 +502,7 @@ for(i in 2:length(stow_audit_tabs)) {
            DQL,
            COMMENTS)
   
-  post_data <- read_excel(paste0(parentpath, stow_audit_master),
+  pre_data_b <- read_excel(paste0(parentpath, stow_audit_master),
                           sheet = tab_name,
                           range = "g17:j22",
                           col_types = pp_ctypes,
@@ -437,7 +526,59 @@ for(i in 2:length(stow_audit_tabs)) {
            DQL,
            COMMENTS)
   
-  ppdata <- bind_rows(pre_data, post_data)
+  post_data_a <- read_excel(paste0(parentpath, stow_audit_master),
+                           sheet = tab_name,
+                           range = "A46:D51",
+                           col_types = pp_ctypes,
+                           col_names = pp_cnames) %>%
+    mutate(TIME = strftime(TIME, format="%H:%M:%S", tz = "GMT")) %>%
+    mutate(REFERENCE_ID = post_refID_tbl[[1,1]], 
+           PARAMETER = "TEMP",
+           UNITS = "deg C",
+           DATE_TIME = as.POSIXct(paste(post_refID_tbl[[1,2]], TIME), format="%Y-%m-%d %H:%M:%S"),
+           DQL = "",
+           COMMENTS = "",
+           LOGGER_ID = tab_name) %>%
+    select(LOGGER_ID,
+           PARAMETER,
+           UNITS,
+           DATE_TIME,
+           EXPECTED_RESULT,
+           LOGGER_RESULT,
+           REFERENCE_ID,
+           DIFF,
+           DQL,
+           COMMENTS)
+  
+  post_data_a <- read_excel(paste0(parentpath, stow_audit_master),
+                            sheet = tab_name,
+                            range = "A46:D51",
+                            col_types = pp_ctypes,
+                            col_names = pp_cnames) %>%
+    mutate(TIME = strftime(TIME, format="%H:%M:%S", tz = "GMT")) %>%
+    mutate(REFERENCE_ID = post_refID_tbl[[1,3]], 
+           PARAMETER = "TEMP",
+           UNITS = "deg C",
+           DATE_TIME = as.POSIXct(paste(post_refID_tbl[[1,4]], TIME), format="%Y-%m-%d %H:%M:%S"),
+           DQL = "",
+           COMMENTS = "",
+           LOGGER_ID = tab_name) %>%
+    select(LOGGER_ID,
+           PARAMETER,
+           UNITS,
+           DATE_TIME,
+           EXPECTED_RESULT,
+           LOGGER_RESULT,
+           REFERENCE_ID,
+           DIFF,
+           DQL,
+           COMMENTS)
+  
+  
+  ppdata <- pre_data_a %>%
+    bind_rows(pre_data_b) %>%
+    bind_rows(post_data_a) %>%
+    bind_rows(post_data_b)
   
   #convert F to C
   cor_ppdata <- ppdata %>%
@@ -449,18 +590,22 @@ for(i in 2:length(stow_audit_tabs)) {
   
 }
 
+
 #bind field audit data together
+stow_field_auditinfo <- bind_rows(stow_field_audit_list)
 field_auditinfo <- bind_rows(field_audit_list)
-field_auditinfo <- bind_rows(stow_field_audit_list)
 #bind pre/post data together
 pp_audit_data <- bind_rows(pp_audit_list)
-pp_audit_data <- bind_rows(Stow_pp_audit_list)
+stow_pp_audit_data <- bind_rows(Stow_pp_audit_list)
+
+FieldAuditResults <- rbind(stow_field_auditinfo, field_auditinfo)
+PrePostResults <- rbind(pp_audit_data, stow_pp_audit_data )
 
 sheet = createSheet(wb, "FieldAuditResults")
-addDataFrame(field_auditinfo, sheet = sheet)
+addDataFrame(FieldAuditResults, sheet = sheet)
 
 sheet = createSheet(wb, "PrePostResults")
-addDataFrame(pp_audit_data, sheet = sheet)
+addDataFrame(PrePostResults, sheet = sheet)
 
 ###################################################################################
 ###                                  Read data                                  ###
@@ -470,43 +615,54 @@ addDataFrame(pp_audit_data, sheet = sheet)
 in_fnames <- list.files(datapath, full.names = TRUE)
 
 #choose only csv
-datafiles <- in_fnames[grepl('xls', in_fnames)]
+datafiles <- in_fnames[grepl('csv', in_fnames)]
 
 #get logger ID from filename and create vector
 loggers <- sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(in_fnames))
  
 
 
+#vector of filenames in directory
+in_fnames <- list.files(datapath, full.names = TRUE)
+
+#choose only csv
+datafiles <- in_fnames[grepl('csv', in_fnames)]
+
+#get logger ID from filename and create vector
+loggers <- sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(datafiles))
+
+
+
 
 for(i in 1:length(datafiles)) {
   
-  datafile <- datafiles[i]
+  datafile <- datafiles [i]
   
-  print(paste0("starting ",loggers[i],  "- File ", i, " of ", length(datafiles)))
+  print(paste0("starting ", datafiles[i],  "- File ", i, " of ", length(datafiles)))
   
-  loggerdata <- read_excel(datafile,
-                           range = cell_cols("A:B"),
-                           skip = 2,
-                           col_names = TRUE)%>%
-    rename("DATETIME" = "Date/Time", TEMP_r = "Temperature   (*F)")
-
+  loggerdata <- read_csv(datafile, 
+                         skip = 2,
+                         col_names = FALSE)
+  
   
   temp_data <- loggerdata %>%
-    mutate(DATE = as.Date(DATETIME, "%m/%d/%y %H:%M:%S")) %>%
-    mutate(TIME = format(as.POSIXct(strptime(DATETIME, "%m/%d/%y %H:%M:%S")) ,format = "%H:%M")) %>%
+    select(X2, X3) %>%
+    rename(DATETIME = X2, TEMP_r = X3) %>%
+    mutate(DATE = as.Date(DATETIME, "%m/%d/%y %I:%M:%S %p")) %>%
+    mutate(TIME = format(as.POSIXct(strptime(DATETIME,"%m/%d/%y %I:%M:%S %p")) ,format = "%H:%M")) %>%
     mutate(TEMP_r = temp_converter(TEMP_r)) %>%
     select(DATE, TIME, TEMP_r) %>%
     mutate(TEMP_DQL = "")
   
-    
+  
   
   
   sheet = createSheet(wb, loggers[i])
   addDataFrame(temp_data, sheet = sheet, startRow = 5)
   
-  print(paste0("Finished File ", i, " of ", length(datafiles)))
+  print(paste0("Finished File ", i, " of ", length(datafiles)))  
   
-  }
+}
 
 saveWorkbook(wb, paste0(parentpath,excelname))
 
