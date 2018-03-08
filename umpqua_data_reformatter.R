@@ -12,7 +12,7 @@ library(lubridate)
 
 
 #pathway for working documents
-filepath <- "//deqlab1/Vol_Data/umpqua/2010/2010 Reference Temperature Files/Working docs/"
+filepath <- "//deqlab1/Vol_Data/umpqua/2010/2010 Reference Temperature Files/"
 
 save_path <- "//deqlab1/Vol_Data/umpqua/2010/2010 Reference Temperature Files/4r2010UmpquaRefCnTemp.xlsx"
 
@@ -71,6 +71,9 @@ smi <- sumtable %>%
   mutate(Logger_Time = strftime(Logger_Time, format="%H:%M:%S"), 
          DownloadTime = strftime(DownloadTime, format="%H:%M:%S"))
 
+#make as dataframe so that xlsx::addDataFrame can write without row names
+smi <- data.frame(smi)
+
 #create logger lookup table
 logger_lookup <- smi %>%
   select(Logger_ID, LASAR_ID) %>%
@@ -78,7 +81,7 @@ logger_lookup <- smi %>%
 
 #add smi to workbook
 sheet = createSheet(wb, "SiteMasterInfo")
-addDataFrame(smi, sheet = sheet, startRow = 6)
+addDataFrame(smi, sheet = sheet, startRow = 6, row.names = FALSE)
 
 
 #For loop to pull together audit info from all the datasheets
@@ -146,15 +149,18 @@ field_audit_list[[i]] <- field_audits
 
 #bind field audit data together
 field_auditinfo <- bind_rows(field_audit_list)
+field_auditinfo <- data.frame(field_auditinfo)
 #bind pre/post data together
 pp_audit_data <- bind_rows(pp_audit_list)
+pp_audit_data <- data.frame(pp_audit_data)
+
 
 #put audit info into workbook
 sheet = createSheet(wb, "FieldAuditResults")
-addDataFrame(field_auditinfo, sheet = sheet)
+addDataFrame(field_auditinfo, sheet = sheet, row.names = FALSE)
 
 sheet = createSheet(wb, "PrePostResults")
-addDataFrame(pp_audit_data, sheet = sheet)
+addDataFrame(pp_audit_data, sheet = sheet, row.names = FALSE)
 
 
 #get data
@@ -170,9 +176,11 @@ for (j in 1:length(datafiles)) {
     mutate(DATE = as.Date(DATETIME), TIME = format(ymd_hms(DATETIME), "%H:%M:%S" ), TEMP_DQL = "")  %>%
     select(DATE, TIME, TEMP_r, TEMP_DQL)
   
+  loggerdata <- data.frame(loggerdata)
+  
   #add data to workbook
   sheet = createSheet(wb, logger)
-  addDataFrame(loggerdata, sheet = sheet, startRow = 5)
+  addDataFrame(loggerdata, sheet = sheet, startRow = 5, row.names = FALSE)
   
   print(paste0("Finished File ", j, " of ", length(datafiles))) 
   
