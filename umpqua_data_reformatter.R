@@ -11,6 +11,9 @@ library(lubridate)
 #########################################################################################
 
 
+# Script Setup ------------------------------------------------------------
+
+
 #pathway for working documents
 filepath <- "//deqlab1/Vol_Data/umpqua/2010/2010 Reference Temperature Files/"
 
@@ -42,6 +45,9 @@ auditfiles <- nonsumfile[grepl('Audit', nonsumfile)]
 #get vector for datafiles
 datafiles <- in_fnames[!grepl('A Summary of Ref', in_fnames)]
 datafiles <- datafiles[!grepl('Audit', datafiles)]
+
+
+# Site Master Info Table --------------------------------------------------
 
 
 #load in summary file
@@ -82,6 +88,9 @@ logger_lookup <- smi %>%
 #add smi to workbook
 sheet = createSheet(wb, "SiteMasterInfo")
 addDataFrame(smi, sheet = sheet, startRow = 6, row.names = FALSE)
+
+
+# Pre/Post Audits and Field Audit Results ---------------------------------
 
 
 #For loop to pull together audit info from all the datasheets
@@ -143,7 +152,7 @@ field_audit_list[[i]] <- field_audits
            DIFF, DQL, COMMENTS)
   
   #put ppaudits into list for later binding
-  pp_audit_list[[i]] <- ppaudits
+  pp_audit_list[[i]] <- ppauditsOO
   
 }
 
@@ -161,6 +170,9 @@ addDataFrame(field_auditinfo, sheet = sheet, row.names = FALSE)
 
 sheet = createSheet(wb, "PrePostResults")
 addDataFrame(pp_audit_data, sheet = sheet, row.names = FALSE)
+
+
+# Logger Data -------------------------------------------------------------
 
 
 #get data
@@ -185,5 +197,9 @@ for (j in 1:length(datafiles)) {
   print(paste0("Finished File ", j, " of ", length(datafiles))) 
   
   }
+
+
+# Write to Excel file -----------------------------------------------------
+
 
 saveWorkbook(wb, save_path)
