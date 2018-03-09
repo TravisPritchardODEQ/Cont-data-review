@@ -15,9 +15,9 @@ library(lubridate)
 
 
 #pathway for working documents
-filepath <- "//deqlab1/Vol_Data/umpqua/2009/2009 Reference Temperature Files/"
+filepath <- "//deqlab1/Vol_Data/umpqua/2007/2007 Reference Temperature Files/"
 
-save_path <- "//deqlab1/Vol_Data/umpqua/2009/2009 Reference Temperature Files/4r2009UmpquaRefCnTemp.xlsx"
+save_path <- "//deqlab1/Vol_Data/umpqua/2007/2007 Reference Temperature Files/4r2007UmpquaRefCnTemp.xlsx"
 
 #load in lookuptable for lasar IDs
 load("E:/Documents/Code/umpqua_ref_site_lookup.RData")
@@ -61,7 +61,7 @@ smi <- sumtable %>%
          Station_Description = "Site Name",
          Decimal_Latitude = "Latitude",
          Decimal_Longitude = "Longitude",
-         "Deploy_Depth(meters)" = "Depth (m)",
+         'Deploy_Depth(meters)' = "Depth (m)",
          Download_Date = "Downloaded Date",
          DownloadTime = Time,
          Logger_Date = "Logger Date",
@@ -74,8 +74,7 @@ smi <- sumtable %>%
          "Deploy_Depth(meters)", Download_Date, DownloadTime,
          Logger_Date, Logger_Time, Time_Diff, COMMENTS ) %>%
   rename(Site_ID = Site_ID_yr) %>%
-  mutate(Logger_Time = strftime(Logger_Time, format="%H:%M:%S"), 
-         DownloadTime = strftime(DownloadTime, format="%H:%M:%S"))
+  mutate(DownloadTime = strftime(DownloadTime, format="%H:%M:%S"))
 
 #make as dataframe so that xlsx::addDataFrame can write without row names
 smi <- data.frame(smi)
